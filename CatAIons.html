@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CATAIons — CAT Study Buddy</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script>
+MathJax = {
+  tex: { inlineMath: [['$','$'], ['\\(','\\)']], displayMath: [['$$','$$']] },
+  options: { skipHtmlTags: ['script','noscript','style','textarea'] }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<style>
+:root {
+  --bg: #0c0c10;
+  --surface: #13131a;
+  --surface2: #1a1a24;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #e8e8f0;
+  --muted: #6b6b80;
+  --accent: #f0a500;
+  --accent2: #ff5f57;
+  --green: #00d084;
+  --blue: #4d9fff;
+  --purple: #a855f7;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Syne', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* BG texture */
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(240,165,0,0.07) 0%, transparent 60%),
+              radial-gradient(ellipse 60% 40% at 80% 80%, rgba(77,159,255,0.05) 0%, transparent 60%);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* CONFIG BANNER - hidden, keys hardcoded */
+#config-banner { display: none; }
+
+/* MAIN LAYOUT */
+.app {
+  padding-top: 0px;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+/* TOP BAR */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px;
+  border-bottom: 1px solid var(--border);
+}
+.logo {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.logo span { color: var(--accent); }
+
+.exam-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(240,165,0,0.1);
+  border: 1px solid rgba(240,165,0,0.25);
+  border-radius: 100px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.exam-badge .dot { width:6px; height:6px; border-radius:50%; background:var(--accent); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.mastery-mini {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.m-chip {
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.m-chip.good { border-color: rgba(0,208,132,0.3); color: var(--green); }
+.m-chip.mid { border-color: rgba(240,165,0,0.3); color: var(--accent); }
+.m-chip.low { border-color: rgba(255,95,87,0.3); color: var(--accent2); }
+
+/* MAIN GRID */
+.main-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  height: calc(100vh - 130px);
+}
+
+/* LEFT PANEL */
+.left-panel {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-section {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-title {
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+/* Upload zone */
+.upload-zone {
+  border: 2px dashed var(--border2);
+  border-radius: 12px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  background: rgba(255,255,255,0.01);
+}
+.upload-zone:hover, .upload-zone.dragging {
+  border-color: var(--accent);
+  background: rgba(240,165,0,0.04);
+}
+.upload-zone input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+.upload-icon { font-size: 32px; margin-bottom: 10px; }
+.upload-text { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.upload-text strong { color: var(--text); display:block; margin-bottom:4px; }
+
+#preview-img {
+  width: 100%;
+  border-radius: 8px;
+  margin-top: 12px;
+  display: none;
+  max-height: 160px;
+  object-fit: cover;
+}
+
+/* Analyze button */
+.analyze-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.analyze-btn:hover:not(:disabled) { background: #ffc107; transform: translateY(-1px); }
+.analyze-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* Study Modes */
+.modes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.mode-btn {
+  padding: 12px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  font-family: 'Syne', sans-serif;
+}
+.mode-btn:hover:not(:disabled) { border-color: var(--border2); background: var(--surface2); }
+.mode-btn.active { border-color: var(--accent); background: rgba(240,165,0,0.08); }
+.mode-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.mode-icon { font-size: 18px; margin-bottom: 6px; }
+.mode-name { font-size: 11px; font-weight: 700; color: var(--text); }
+.mode-desc { font-size: 10px; color: var(--muted); margin-top:2px; line-height:1.4; }
+
+/* Language selector */
+.lang-select {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+}
+.lang-select:focus { outline: none; border-color: var(--accent); }
+
+/* Mastery panel */
+.mastery-section { flex: 1; overflow-y: auto; padding: 20px 24px; }
+.mastery-item { margin-bottom: 14px; }
+.mastery-row { display:flex; justify-content:space-between; margin-bottom:5px; }
+.mastery-topic { font-size: 12px; color: var(--text); }
+.mastery-score { font-family:'DM Mono',monospace; font-size:11px; }
+.mastery-bar { height: 4px; background: rgba(255,255,255,0.06); border-radius: 100px; overflow: hidden; }
+.mastery-fill { height: 100%; border-radius: 100px; transition: width 0.6s ease; }
+
+/* RIGHT PANEL - CHAT */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.chat-area::-webkit-scrollbar { width: 4px; }
+.chat-area::-webkit-scrollbar-track { background: transparent; }
+.chat-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* Welcome state */
+.welcome-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px;
+  gap: 16px;
+}
+.welcome-icon { font-size: 56px; }
+.welcome-title { font-size: 28px; font-weight: 800; color: var(--text); }
+.welcome-sub { font-size: 14px; color: var(--muted); line-height: 1.7; max-width: 420px; }
+.welcome-steps {
+  display: flex;
+  gap: 24px;
+  margin-top: 8px;
+}
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.step-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Message bubbles */
+.msg { display: flex; gap: 12px; max-width: 100%; animation: msgIn 0.3s ease; }
+@keyframes msgIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+.msg.user { flex-direction: row-reverse; }
+
+.msg-avatar {
+  width: 32px; height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.msg.ai .msg-avatar { background: rgba(240,165,0,0.15); border: 1px solid rgba(240,165,0,0.2); }
+.msg.user .msg-avatar { background: rgba(77,159,255,0.15); border: 1px solid rgba(77,159,255,0.2); }
+
+.msg-content { flex: 1; min-width: 0; }
+.msg.user .msg-content { align-items: flex-end; display:flex; flex-direction:column; }
+
+.msg-label {
+  font-family:'DM Mono',monospace;
+  font-size:9px;
+  letter-spacing:1.5px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.msg-bubble {
+  padding: 16px 20px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.7;
+  max-width: 720px;
+}
+
+.msg.ai .msg-bubble {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top-left-radius: 4px;
+  color: var(--text);
+}
+.msg.user .msg-bubble {
+  background: rgba(77,159,255,0.12);
+  border: 1px solid rgba(77,159,255,0.2);
+  border-top-right-radius: 4px;
+  color: var(--text);
+  text-align: right;
+}
+
+/* Structured concept card */
+.concept-card {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 12px;
+}
+.cc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.cc-topic {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.cc-difficulty {
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: rgba(240,165,0,0.1);
+  color: var(--accent);
+  border: 1px solid rgba(240,165,0,0.2);
+}
+.cc-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.cc-item-label { font-family:'DM Mono',monospace; font-size:9px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+.cc-tags { display:flex; flex-wrap:wrap; gap:5px; }
+.cc-tag {
+  font-size:11px;
+  padding: 3px 9px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.cc-tag.formula { background:rgba(168,85,247,0.1); border-color:rgba(168,85,247,0.2); color:var(--purple); font-family:'DM Mono',monospace; }
+
+/* Exam insight bar */
+.exam-insight {
+  background: linear-gradient(135deg, rgba(240,165,0,0.08), rgba(255,95,87,0.05));
+  border: 1px solid rgba(240,165,0,0.15);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-top: 12px;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+.ei-item { text-align:center; }
+.ei-val { font-size:18px; font-weight:800; color:var(--accent); }
+.ei-label { font-size:10px; color:var(--muted); font-family:'DM Mono',monospace; }
+
+/* Quiz */
+.quiz-block {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 22px;
+  margin-top: 12px;
+}
+.quiz-q-text {
+  font-family:'Lora',serif;
+  font-size:15px;
+  color:var(--text);
+  margin-bottom:16px;
+  line-height:1.6;
+}
+.quiz-options { display:flex; flex-direction:column; gap:8px; }
+.quiz-opt-btn {
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family:'Syne',sans-serif;
+  font-size:13px;
+  cursor:pointer;
+  text-align:left;
+  transition:all 0.2s;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.quiz-opt-btn:hover:not(:disabled) { border-color:var(--border2); background:rgba(255,255,255,0.06); }
+.quiz-opt-btn.correct { border-color:var(--green); background:rgba(0,208,132,0.08); color:var(--green); }
+.quiz-opt-btn.wrong { border-color:var(--accent2); background:rgba(255,95,87,0.08); color:var(--accent2); }
+.quiz-opt-btn:disabled { cursor:default; }
+.opt-label {
+  width:22px; height:22px;
+  border-radius:6px;
+  background:rgba(255,255,255,0.06);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;
+  flex-shrink:0;
+}
+.quiz-explanation {
+  margin-top:14px;
+  padding:14px;
+  background:rgba(0,208,132,0.06);
+  border:1px solid rgba(0,208,132,0.15);
+  border-radius:8px;
+  font-size:13px;
+  color:rgba(255,255,255,0.7);
+  line-height:1.6;
+  display:none;
+}
+
+/* Audio player */
+.audio-bar {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.audio-bar.visible { display:flex; }
+.play-btn {
+  width:36px; height:36px;
+  border-radius:50%;
+  background: var(--accent);
+  border:none;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;
+  flex-shrink:0;
+  transition:all 0.2s;
+}
+.play-btn:hover { background:#ffc107; transform:scale(1.05); }
+.audio-info { flex:1; }
+.audio-title { font-size:12px; font-weight:600; color:var(--text); }
+.audio-sub { font-size:10px; color:var(--muted); font-family:'DM Mono',monospace; }
+.audio-lang-badge {
+  font-size:10px;
+  padding:3px 8px;
+  background:rgba(77,159,255,0.1);
+  border:1px solid rgba(77,159,255,0.2);
+  border-radius:4px;
+  color:var(--blue);
+  font-family:'DM Mono',monospace;
+}
+
+/* Thinking indicator */
+.thinking {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.thinking-dots {
+  display:flex;gap:4px;padding:14px 18px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  border-top-left-radius:4px;
+}
+.thinking-dots span {
+  width:6px;height:6px;
+  border-radius:50%;
+  background:var(--muted);
+  animation:bounce 1.2s infinite;
+}
+.thinking-dots span:nth-child(2){animation-delay:0.2s}
+.thinking-dots span:nth-child(3){animation-delay:0.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+/* Input bar */
+.input-bar {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  background: rgba(10,10,16,0.8);
+  backdrop-filter: blur(20px);
+}
+.chat-input {
+  flex:1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: var(--text);
+  font-family:'Syne',sans-serif;
+  font-size: 14px;
+  resize: none;
+  min-height: 46px;
+  max-height: 120px;
+  line-height:1.5;
+}
+.chat-input:focus { outline:none; border-color:var(--border2); }
+.chat-input::placeholder { color:var(--muted); }
+.send-btn {
+  width:46px; height:46px;
+  background:var(--accent);
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+  font-size:18px;
+  transition:all 0.2s;
+  flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.send-btn:hover:not(:disabled) { background:#ffc107; transform:translateY(-1px); }
+.send-btn:disabled { opacity:0.3; cursor:not-allowed; transform:none; }
+
+/* Toast */
+.toast {
+  position:fixed;bottom:24px;right:24px;
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  border-radius:10px;
+  padding:12px 20px;
+  font-size:13px;
+  z-index:999;
+  transform:translateY(80px);
+  opacity:0;
+  transition:all 0.3s;
+}
+.toast.show { transform:translateY(0); opacity:1; }
+.toast.success { border-color:rgba(0,208,132,0.3); color:var(--green); }
+.toast.error { border-color:rgba(255,95,87,0.3); color:var(--accent2); }
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+@media(max-width:768px){
+  .main-grid{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .left-panel{max-height:50vh;overflow-y:auto}
+  .topbar{padding:12px 16px}
+  .mastery-mini{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- CONFIG BANNER -->
+<div id="config-banner">
+  <span class="config-label">API Keys</span>
+  <input class="config-input" id="gemini-key" type="password" placeholder="Gemini API Key (AIza...)" />
+  <input class="config-input" id="speech-key" type="password" placeholder="Azure Speech Key" />
+  <input class="config-input" id="speech-region" style="max-width:130px;" placeholder="Region (e.g. eastus)" />
+  <input class="config-input" id="vision-key" type="password" placeholder="Azure Computer Vision Key (optional)" />
+  <input class="config-input" id="translator-key" type="password" placeholder="Azure Translator Key (optional)" />
+  <button class="config-save" onclick="saveConfig()">Save & Activate ✓</button>
+  <span class="config-status" id="config-status"></span>
+</div>
+
+<div class="app">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="logo">CAT<span>AIons</span></div>
+    <div class="exam-badge"><span class="dot"></span> CAT 2025 Mode</div>
+    <div class="mastery-mini" id="mastery-mini">
+      <span class="m-chip mid" id="m-quant">Quant 45%</span>
+      <span class="m-chip low" id="m-varc">VARC 30%</span>
+      <span class="m-chip good" id="m-dilr">DILR 70%</span>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+
+      <!-- Upload -->
+      <div class="panel-section">
+        <div class="panel-title">Upload Notes</div>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)" />
+          <div class="upload-icon">📄</div>
+          <div class="upload-text">
+            <strong>Drop your handwritten notes</strong>
+            JPG, PNG — any handwriting
+          </div>
+        </div>
+        <img id="preview-img" src="" alt="preview" />
+        <button class="analyze-btn" id="analyze-btn" onclick="analyzeNotes()" disabled>
+          <span>🔍</span> Analyze Notes
+        </button>
+      </div>
+
+      <!-- Study Modes -->
+      <div class="panel-section">
+        <div class="panel-title">Study Mode</div>
+        <div class="modes-grid">
+          <button class="mode-btn" id="mode-diagnostic" onclick="setMode('diagnostic')" disabled>
+            <div class="mode-icon">🩺</div>
+            <div class="mode-name">Diagnostic</div>
+            <div class="mode-desc">Test your baseline</div>
+          </button>
+          <button class="mode-btn" id="mode-teach" onclick="setMode('teach')" disabled>
+            <div class="mode-icon">🎓</div>
+            <div class="mode-name">Teach Me</div>
+            <div class="mode-desc">Explain weak areas</div>
+          </button>
+          <button class="mode-btn" id="mode-quiz" onclick="setMode('quiz')" disabled>
+            <div class="mode-icon">⚡</div>
+            <div class="mode-name">CAT Quiz</div>
+            <div class="mode-desc">Exam-style MCQs</div>
+          </button>
+          <button class="mode-btn" id="mode-insights" onclick="setMode('insights')" disabled>
+            <div class="mode-icon">📊</div>
+            <div class="mode-name">Exam Insights</div>
+            <div class="mode-desc">Frequency & traps</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Language -->
+      <div class="panel-section">
+        <div class="panel-title">Explanation Language</div>
+        <select class="lang-select" id="lang-select">
+          <option value="en-IN" selected>English</option>
+          <option value="hi-IN">Hindi — हिंदी</option>
+          <option value="ta-IN">Tamil — தமிழ்</option>
+          <option value="te-IN">Telugu — తెలుగు</option>
+          <option value="mr-IN">Marathi — मराठी</option>
+          <option value="bn-IN">Bengali — বাংলা</option>
+          <option value="kn-IN">Kannada — ಕನ್ನಡ</option>
+          <option value="gu-IN">Gujarati — ગુજરાતી</option>
+        </select>
+      </div>
+
+      <!-- Mastery Tracker -->
+      <div class="mastery-section">
+        <div class="panel-title">Mastery Profile — CAT</div>
+
+        <div class="mastery-item">
+          <div class="mastery-row">
+            <span class="mastery-topic">Arithmetic</span>
+            <span class="mastery-score" style="color:var(--accent)" id="ms-arith">45%</span>
+          </div>
+          <div class="mastery-bar"><div class="mastery-fill" id="mf-arith" style="width:45%;background:var(--accent)"></div></div>
+        </div>
+        <div class="mastery-item">
+          <div class="mastery-row">
+            <span class="mastery-topic">Algebra</span>
+            <span class="mastery-score" style="color:var(--green)" id="ms-alg">72%</span>
+          </div>
+          <div class="mastery-bar"><div class="mastery-fill" id="mf-alg" style="width:72%;background:var(--green)"></div></div>
+        </div>
+        <div class="mastery-item">
+          <div class="mastery-row">
+            <span class="mastery-topic">Geometry & Mensuration</span>
+            <span class="mastery-score" style="color:var(--accent2)" id="ms-geo">28%</span>
+          </div>
+          <div class="mastery-bar"><div class="mastery-fill" id="mf-geo" style="width:28%;background:var(--accent2)"></div></div>
+        </div>
+        <div class="mastery-item">
+          <div class="mastery-row">
+            <span class="mastery-topic">Reading Comprehension</span>
+            <span class="mastery-score" style="color:var(--accent2)" id="ms-rc">35%</span>
+          </div>
+          <div class="mastery-bar"><div class="mastery-fill" id="mf-rc" style="width:35%;background:var(--accent2)"></div></div>
+        </div>
+        <div class="mastery-item">
+          <div class="mastery-row">
+            <span class="mastery-topic">Logical Reasoning</span>
+            <span class="mastery-score" style="color:var(--green)" id="ms-lr">68%</span>
+          </div>
+          <div class="mastery-bar"><div class="mastery-fill" id="mf-lr" style="width:68%;background:var(--green)"></div></div>
+        </div>
+        <div class="mastery-item">
+          <div class="mastery-row">
+            <span class="mastery-topic">Data Interpretation</span>
+            <span class="mastery-score" style="color:var(--accent)" id="ms-di">52%</span>
+          </div>
+          <div class="mastery-bar"><div class="mastery-fill" id="mf-di" style="width:52%;background:var(--accent)"></div></div>
+        </div>
+        <div class="mastery-item">
+          <div class="mastery-row">
+            <span class="mastery-topic">Number Systems</span>
+            <span class="mastery-score" style="color:var(--accent2)" id="ms-ns">22%</span>
+          </div>
+          <div class="mastery-bar"><div class="mastery-fill" id="mf-ns" style="width:22%;background:var(--accent2)"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div class="chat-area" id="chat-area">
+        <div class="welcome-state" id="welcome-state">
+          <div class="welcome-icon">🎯</div>
+          <div class="welcome-title">CAT Study Buddy</div>
+          <div class="welcome-sub">Upload your handwritten notes, pick a study mode, and let AI transform them into a personalized CAT prep experience.</div>
+          <div class="welcome-steps">
+            <div class="step"><div class="step-num">1</div>Paste API keys above</div>
+            <div class="step"><div class="step-num">2</div>Upload notes photo</div>
+            <div class="step"><div class="step-num">3</div>Choose study mode</div>
+            <div class="step"><div class="step-num">4</div>Start learning</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-bar">
+        <textarea class="chat-input" id="chat-input" placeholder="Ask anything about your notes, request more questions, switch mode..." rows="1"
+          onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="send-btn" onclick="sendMessage()" disabled>➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// Helper to extract array fields from partial JSON
+function extractArrayField(text, field) {
+  const match = text.match(new RegExp(`"${field}"\\s*:\\s*\\[([^\\]]*)\\]`));
+  if (!match) return [];
+  return match[1].split(',').map(s => s.replace(/"/g,'').trim()).filter(Boolean);
+}
+
+// ─── STATE ───────────────────────────────────────────────
+const STATE = {
+  // ✏️  PASTE YOUR KEYS HERE
+  geminiKey:     'YOUR_GEMINI_API_KEY',
+  speechKey:     'YOUR_AZURE_SPEECH_KEY',
+  speechRegion:  'YOUR_AZURE_SPEECH_REGION',   
+  visionKey:     'YOUR_AZURE_VISION_KEY',       // optional
+  translatorKey: 'YOUR_AZURE_TRANSLATOR_KEY',   // optional
+  // ─────────────────────────────────────────────────────
+  configured: true,
+  notesAnalyzed: false,
+  currentMode: null,
+  currentTopic: null,
+  structuredData: null,
+  lang: 'hi-IN',
+  mastery: { arith:45, alg:72, geo:28, rc:35, lr:68, di:52, ns:22 },
+  history: [],
+  imageBase64: null,
+  imageMime: null
+};
+
+// CAT section mapping
+const CAT_SECTION = {
+  quant: ['arithmetic','algebra','geometry','number systems','permutation','probability','time speed','profit loss','ratio','percentage','averages','mixtures','progression','functions','inequalities','logarithm','trigonometry'],
+  varc: ['reading comprehension','para jumbles','fill in the blanks','vocabulary','grammar','sentence correction','critical reasoning','inference','analogy'],
+  dilr: ['data interpretation','logical reasoning','arrangement','puzzles','sets','venn diagrams','syllogisms','clocks','calendars','coding decoding','tables','graphs','charts']
+};
+
+// Language voice map for Azure TTS
+const VOICE_MAP = {
+  'hi-IN':'hi-IN-MadhurNeural','ta-IN':'ta-IN-ValluvarNeural',
+  'te-IN':'te-IN-MohanNeural','mr-IN':'mr-IN-AarohiNeural',
+  'bn-IN':'bn-IN-TanishaaNeural','kn-IN':'kn-IN-GaganNeural',
+  'gu-IN':'gu-IN-NiranjanNeural','en-IN':'en-IN-NeerjaNeural'
+};
+
+// Keys are hardcoded — no config step needed
+function saveConfig() {}
+
+// Auto-enable send button on page load
+window.addEventListener('load', () => {
+  document.getElementById('send-btn').disabled = false;
+  showToast('CATAIons ready — upload your notes to begin!', 'success');
+});
+
+// ─── FILE HANDLING ───────────────────────────────────────
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const result = ev.target.result;
+    STATE.imageBase64 = result.split(',')[1];
+    STATE.imageMime = file.type || 'image/jpeg';
+    const preview = document.getElementById('preview-img');
+    preview.src = result;
+    preview.style.display = 'block';
+    document.getElementById('analyze-btn').disabled = false;
+    document.getElementById('upload-zone').querySelector('.upload-text').innerHTML =
+      `<strong>${file.name}</strong>Ready to analyze`;
+  };
+  reader.readAsDataURL(file);
+}
+
+// drag & drop
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragging'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragging'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('dragging');
+  const file = e.dataTransfer.files[0];
+  if (file) { document.getElementById('file-input').files = e.dataTransfer.files; handleFile({target:{files:[file]}}); }
+});
+
+// ─── ANALYZE NOTES ───────────────────────────────────────
+async function analyzeNotes() {
+  if (!STATE.configured) { showToast('Please save your API keys first', 'error'); return; }
+  if (!STATE.imageBase64) { showToast('Please upload a note image first', 'error'); return; }
+
+  hideWelcome();
+  addThinking();
+
+  try {
+    const prompt = `You are an expert CAT exam tutor analyzing a handwritten note image.
+
+CRITICAL INSTRUCTIONS:
+- Read ALL text visible in the image carefully
+- Return ONLY a raw JSON object — NO markdown, NO backticks, NO explanation text before or after
+- Start your response with { and end with }
+
+Extract this exact JSON structure:
+{
+  "main_topic": "exact topic name from the notes (e.g. Modulus and Inequality)",
+  "cat_section": "Quant",
+  "subtopics": ["list","of","subtopics","you","see"],
+  "key_formulas": ["every formula or rule you can read"],
+  "key_concepts": ["key concepts mentioned"],
+  "difficulty": "Basic|Intermediate|Advanced",
+  "problem_type": "Theory|Numerical|Both",
+  "cat_relevance": "High|Medium|Low",
+  "typical_weightage": "2-3 questions per paper",
+  "common_traps": ["common mistakes for this topic"],
+  "weak_areas_likely": ["areas students struggle with"],
+  "raw_text": "transcribe all the text you can read from the image"
+}`;
+
+    const response = await callGeminiVision(prompt, STATE.imageBase64, STATE.imageMime);
+    removeThinking();
+
+    let data;
+    try {
+      const clean = response
+        .replace(/```json\s*/gi, '')
+        .replace(/```\s*/gi, '')
+        .trim();
+      const match = clean.match(/\{[\s\S]*\}/);
+      const jsonStr = match ? match[0] : clean;
+      console.log('📦 ATTEMPTING TO PARSE:', jsonStr.substring(0, 200));
+      data = JSON.parse(jsonStr);
+      console.log('✅ PARSED OK:', data.main_topic);
+    } catch(parseErr) {
+      console.error('❌ JSON PARSE FAILED:', parseErr.message);
+      // Try to manually extract topic from raw response
+      const topicMatch = response.match(/"main_topic"\s*:\s*"([^"]+)"/);
+      const sectionMatch = response.match(/"cat_section"\s*:\s*"([^"]+)"/);
+      data = {
+        main_topic: topicMatch ? topicMatch[1] : "Modulus & Inequality",
+        cat_section: sectionMatch ? sectionMatch[1] : "Quant",
+        subtopics: extractArrayField(response, 'subtopics'),
+        key_formulas: extractArrayField(response, 'key_formulas'),
+        key_concepts: extractArrayField(response, 'key_concepts'),
+        difficulty: "Intermediate", problem_type: "Both",
+        cat_relevance: "High", typical_weightage: "3-4 questions",
+        common_traps: extractArrayField(response, 'common_traps'),
+        weak_areas_likely: extractArrayField(response, 'weak_areas_likely'),
+        raw_text: response
+      };
+    }
+
+    STATE.structuredData = data;
+    STATE.notesAnalyzed = true;
+    STATE.currentTopic = data.main_topic;
+
+    // Update mastery
+    updateMasteryFromTopic(data.cat_section, data.difficulty);
+
+    // Show structured result
+    showConceptCard(data);
+
+    // Enable modes
+    ['diagnostic','teach','quiz','insights'].forEach(m => {
+      document.getElementById(`mode-${m}`).disabled = false;
+    });
+
+    // Auto-trigger teaching
+    setMode('teach');
+
+  } catch(err) {
+    removeThinking();
+    addAIMessage(`Error analyzing notes: ${err.message}. Please check your Gemini API key.`);
+    showToast('Analysis failed — check your API key', 'error');
+  }
+}
+
+// ─── GEMINI API ──────────────────────────────────────────
+async function callGeminiVision(prompt, base64, mime) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${STATE.geminiKey}`;
+  const body = {
+    contents: [{
+      parts: [
+        { text: prompt },
+        { inline_data: { mime_type: mime, data: base64 } }
+      ]
+    }],
+    generationConfig: { temperature: 0.3, maxOutputTokens: 8192 }
+  };
+  const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || 'Gemini API error'); }
+  const data = await res.json();
+  const text = data.candidates[0].content.parts[0].text;
+  console.log('🔍 RAW GEMINI VISION RESPONSE:', text); // debug
+  return text;
+}
+
+async function callGemini(prompt, systemContext='') {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${STATE.geminiKey}`;
+  const parts = [];
+  if (systemContext) parts.push({ text: systemContext });
+  parts.push({ text: prompt });
+
+  // Add conversation history
+  const messages = [];
+  STATE.history.slice(-6).forEach(h => {
+    messages.push({ role: h.role === 'ai' ? 'model' : 'user', parts: [{ text: h.content }] });
+  });
+  messages.push({ role: 'user', parts });
+
+  const body = { contents: messages, generationConfig: { temperature: 0.7, maxOutputTokens: 8192 } };
+  const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || 'Gemini error'); }
+  const data = await res.json();
+  const text = data.candidates[0].content.parts[0].text;
+  console.log('🤖 RAW GEMINI RESPONSE:', text); // debug
+  return text;
+}
+
+// ─── STUDY MODES ─────────────────────────────────────────
+function setMode(mode) {
+  if (!STATE.notesAnalyzed) return;
+  STATE.currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`mode-${mode}`).classList.add('active');
+
+  const d = STATE.structuredData;
+  const masteryStr = Object.entries(STATE.mastery).map(([k,v])=>`${k}:${v}%`).join(', ');
+  const langCode = document.getElementById('lang-select').value;
+  STATE.lang = langCode;
+  const langName = document.getElementById('lang-select').selectedOptions[0].text.split('—')[0].trim();
+
+  let prompt = '';
+  const context = `You are CATAIons, an expert CAT exam tutor. Topic: ${d.main_topic}. CAT Section: ${d.cat_section}. Subtopics: ${d.subtopics?.join(', ')}. Student mastery: ${masteryStr}. 
+IMPORTANT: Respond ONLY in ${langName === 'English' ? 'English' : langName} language. 
+FORMATTING RULES: Use ** for bold, ### for headers, * for bullet points. For math write formulas in plain text like |x|, x^2, sqrt(x), >=, <=. Do NOT use LaTeX dollar signs like $x$ or \\frac. Keep response focused and practical for CAT.`;
+
+  if (mode === 'diagnostic') {
+    prompt = `Generate a 3-question diagnostic test for "${d.main_topic}" for CAT prep. Mix difficulty levels based on student mastery of ${STATE.mastery[topicToKey(d.main_topic)] || 40}%.
+
+CRITICAL: Return ONLY a raw JSON array. No markdown, no backticks, no explanation. Start with [ and end with ].
+
+Format:
+[{"question":"...","options":["A) ...","B) ...","C) ...","D) ..."],"correct":"A","explanation":"...","difficulty":"Easy"}]`;
+    runQuizMode(prompt, context);
+  } else if (mode === 'teach') {
+    const weak = d.weak_areas_likely?.join(', ') || d.subtopics?.[0] || 'core concepts';
+    prompt = `Teach "${d.main_topic}" focusing on the weak areas: ${weak}. Explain in a structured way with: 1) Core concept in simple terms with a relatable Indian example, 2) Key formulas and when to use them, 3) Step-by-step approach for CAT problems, 4) One worked example. Student's current mastery: ${STATE.mastery[topicToKey(d.main_topic)] || 40}%. Be concise but thorough.`;
+    runTeachMode(prompt, context, langCode);
+  } else if (mode === 'quiz') {
+    prompt = `Generate 3 CAT-style MCQ questions on "${d.main_topic}". Difficulty based on ${STATE.mastery[topicToKey(d.main_topic)] || 40}% mastery. Include traps: ${d.common_traps?.join(', ') || 'common mistakes'}.
+
+CRITICAL: Return ONLY a raw JSON array. No markdown, no backticks, no explanation. Start with [ and end with ].
+
+Format:
+[{"question":"...","options":["A) ...","B) ...","C) ...","D) ..."],"correct":"B","explanation":"...","difficulty":"Medium"}]`;
+    runQuizMode(prompt, context);
+  } else if (mode === 'insights') {
+    prompt = `Give CAT exam insights for "${d.main_topic}": 1) Average questions per CAT paper and which slot typically has more, 2) Difficulty distribution (easy/medium/hard %), 3) Top 3 question patterns that appear repeatedly, 4) 3 common traps students fall for, 5) Time allocation advice (seconds per question), 6) Whether to attempt or skip based on ${STATE.mastery[topicToKey(d.main_topic)] || 40}% mastery. Be specific with numbers.`;
+    runInsightsMode(prompt, context);
+  }
+}
+
+function topicToKey(topic) {
+  const t = topic.toLowerCase();
+  if (t.includes('arithmetic')||t.includes('ratio')||t.includes('percent')||t.includes('profit')||t.includes('time')) return 'arith';
+  if (t.includes('algebra')||t.includes('equation')||t.includes('quadratic')) return 'alg';
+  if (t.includes('geometry')||t.includes('mensuration')||t.includes('circle')||t.includes('triangle')) return 'geo';
+  if (t.includes('reading')||t.includes('comprehension')||t.includes('varc')||t.includes('vocab')) return 'rc';
+  if (t.includes('logical')||t.includes('reasoning')||t.includes('arrangement')) return 'lr';
+  if (t.includes('data')||t.includes('interpretation')||t.includes('chart')||t.includes('table')) return 'di';
+  if (t.includes('number')||t.includes('divisibility')||t.includes('factor')) return 'ns';
+  return 'arith';
+}
+
+async function runTeachMode(prompt, context, langCode) {
+  addUserMessage(`📚 Teach Me: ${STATE.currentTopic}`);
+  addThinking();
+  try {
+    let response = await callGemini(prompt, context);
+    removeThinking();
+    STATE.history.push({role:'user', content: prompt});
+    STATE.history.push({role:'ai', content: response});
+    const msgEl = addAIMessage(response);
+    // TTS
+    if (STATE.speechKey && langCode !== 'en-IN') {
+      await speakText(response, langCode, msgEl);
+    }
+    updateMastery(topicToKey(STATE.currentTopic), 3);
+  } catch(e) {
+    removeThinking();
+    addAIMessage(`Error: ${e.message}`);
+  }
+}
+
+async function runQuizMode(prompt, context) {
+  addUserMessage(`⚡ ${STATE.currentMode === 'diagnostic' ? 'Diagnostic Test' : 'CAT Quiz'}: ${STATE.currentTopic}`);
+  addThinking();
+  try {
+    const response = await callGemini(prompt, context);
+    removeThinking();
+    let questions;
+    try {
+      const clean = response
+        .replace(/```json\s*/gi, '')
+        .replace(/```\s*/gi, '')
+        .trim();
+      // extract array if there's text before/after
+      const match = clean.match(/\[[\s\S]*\]/);
+      questions = JSON.parse(match ? match[0] : clean);
+    } catch {
+      addAIMessage(response);
+      return;
+    }
+    questions.forEach((q, i) => renderQuestion(q, i));
+  } catch(e) {
+    removeThinking();
+    addAIMessage(`Error generating quiz: ${e.message}`);
+  }
+}
+
+async function runInsightsMode(prompt, context) {
+  addUserMessage(`📊 CAT Insights: ${STATE.currentTopic}`);
+  addThinking();
+  try {
+    const response = await callGemini(prompt, context);
+    removeThinking();
+    STATE.history.push({role:'user', content:prompt});
+    STATE.history.push({role:'ai', content:response});
+    addAIMessage(response);
+    // show exam insight bar
+    showExamInsightBar();
+  } catch(e) {
+    removeThinking();
+    addAIMessage(`Error: ${e.message}`);
+  }
+}
+
+// ─── CHAT ────────────────────────────────────────────────
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text || !STATE.configured) return;
+
+  hideWelcome();
+  addUserMessage(text);
+  input.value = '';
+  input.style.height = 'auto';
+  STATE.history.push({role:'user', content:text});
+
+  addThinking();
+  try {
+    const d = STATE.structuredData;
+    const context = d
+      ? `You are CATAIons, expert CAT tutor. Current topic: ${d.main_topic}. CAT Section: ${d.cat_section}. Student mastery: ${JSON.stringify(STATE.mastery)}. Use ** for bold, ### for headers, * for bullets. Write math in plain text (no LaTeX dollar signs). Be helpful, specific to CAT prep.`
+      : `You are CATAIons, expert CAT exam preparation tutor. Help the student with CAT prep — Quant, VARC, DILR. Use ** for bold, ### for headers, * for bullets. Write math in plain text. Be specific and practical.`;
+
+    const response = await callGemini(text, context);
+    removeThinking();
+    STATE.history.push({role:'ai', content:response});
+    addAIMessage(response);
+  } catch(e) {
+    removeThinking();
+    addAIMessage(`Error: ${e.message}`);
+  }
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ─── RENDER FUNCTIONS ────────────────────────────────────
+function hideWelcome() {
+  const w = document.getElementById('welcome-state');
+  if (w) w.remove();
+}
+
+function showConceptCard(data) {
+  const chat = document.getElementById('chat-area');
+  const msg = document.createElement('div');
+  msg.className = 'msg ai';
+  msg.innerHTML = `
+    <div class="msg-avatar">🔍</div>
+    <div class="msg-content">
+      <div class="msg-label">CATAIons · Note Analysis</div>
+      <div class="msg-bubble">
+        I've analyzed your handwritten notes. Here's what I found:
+        <div class="concept-card">
+          <div class="cc-header">
+            <div class="cc-topic">${data.main_topic}</div>
+            <div class="cc-difficulty">${data.difficulty} · ${data.cat_section}</div>
+          </div>
+          <div class="cc-grid">
+            <div>
+              <div class="cc-item-label">Subtopics</div>
+              <div class="cc-tags">${(data.subtopics||[]).map(s=>`<span class="cc-tag">${s}</span>`).join('')||'<span class="cc-tag">—</span>'}</div>
+            </div>
+            <div>
+              <div class="cc-item-label">Key Formulas</div>
+              <div class="cc-tags">${(data.key_formulas||[]).map(f=>`<span class="cc-tag formula">${f}</span>`).join('')||'<span class="cc-tag">—</span>'}</div>
+            </div>
+            <div>
+              <div class="cc-item-label">CAT Relevance</div>
+              <div class="cc-tags"><span class="cc-tag" style="color:var(--accent);border-color:rgba(240,165,0,0.3)">${data.cat_relevance} · ${data.typical_weightage||'2-4 questions'}</span></div>
+            </div>
+            <div>
+              <div class="cc-item-label">Problem Type</div>
+              <div class="cc-tags"><span class="cc-tag">${data.problem_type}</span></div>
+            </div>
+          </div>
+          ${data.common_traps?.length ? `<div style="margin-top:12px"><div class="cc-item-label">Common Traps ⚠️</div><div class="cc-tags">${data.common_traps.map(t=>`<span class="cc-tag" style="border-color:rgba(255,95,87,0.3);color:var(--accent2)">${t}</span>`).join('')}</div></div>` : ''}
+        </div>
+        <div style="margin-top:12px;font-size:13px;color:var(--muted)">Select a study mode on the left to begin →</div>
+      </div>
+    </div>`;
+  chat.appendChild(msg);
+  scrollChat();
+}
+
+function renderQuestion(q, idx) {
+  const chat = document.getElementById('chat-area');
+  const msg = document.createElement('div');
+  msg.className = 'msg ai';
+  const qid = `q-${Date.now()}-${idx}`;
+  msg.innerHTML = `
+    <div class="msg-avatar">⚡</div>
+    <div class="msg-content">
+      <div class="msg-label">CATAIons · ${q.difficulty||'Medium'} Question ${idx+1}</div>
+      <div class="msg-bubble">
+        <div class="quiz-block" id="${qid}">
+          <div class="quiz-q-text">${q.question}</div>
+          <div class="quiz-options">
+            ${q.options.map((opt,i)=>`
+              <button class="quiz-opt-btn" onclick="answerQ('${qid}','${String.fromCharCode(65+i)}','${q.correct}',this)" data-opt="${String.fromCharCode(65+i)}">
+                <span class="opt-label">${String.fromCharCode(65+i)}</span>${opt.replace(/^[A-D]\)\s*/,'')}
+              </button>`).join('')}
+          </div>
+          <div class="quiz-explanation" id="exp-${qid}">💡 ${q.explanation}</div>
+        </div>
+      </div>
+    </div>`;
+  chat.appendChild(msg);
+  scrollChat();
+}
+
+function answerQ(qid, chosen, correct, btn) {
+  const block = document.getElementById(qid);
+  const allBtns = block.querySelectorAll('.quiz-opt-btn');
+  allBtns.forEach(b => {
+    b.disabled = true;
+    if (b.dataset.opt === correct) b.classList.add('correct');
+  });
+  if (chosen !== correct) btn.classList.add('wrong');
+  else {
+    updateMastery(topicToKey(STATE.currentTopic||''), 5);
+    showToast('Correct! +5 mastery points', 'success');
+  }
+  document.getElementById(`exp-${qid}`).style.display = 'block';
+}
+
+function showExamInsightBar() {
+  const d = STATE.structuredData;
+  const chat = document.getElementById('chat-area');
+  const bar = document.createElement('div');
+  bar.className = 'msg ai';
+  bar.innerHTML = `
+    <div class="msg-avatar">📊</div>
+    <div class="msg-content">
+      <div class="msg-label">CATAIons · CAT Data</div>
+      <div class="msg-bubble">
+        <div class="exam-insight">
+          <div class="ei-item"><div class="ei-val">3-4</div><div class="ei-label">Questions/Paper</div></div>
+          <div class="ei-item"><div class="ei-val">${d.cat_relevance}</div><div class="ei-label">CAT Relevance</div></div>
+          <div class="ei-item"><div class="ei-val">${d.difficulty}</div><div class="ei-label">Difficulty</div></div>
+          <div class="ei-item"><div class="ei-val">2.5 min</div><div class="ei-label">Time/Question</div></div>
+        </div>
+      </div>
+    </div>`;
+  chat.appendChild(bar);
+  scrollChat();
+}
+
+function addAIMessage(text) {
+  const chat = document.getElementById('chat-area');
+  const msg = document.createElement('div');
+  msg.className = 'msg ai';
+
+  // Full markdown + LaTeX formatting
+  const formatted = text
+    // Headers
+    .replace(/^### (.*?)$/gm, '<h4 style="color:var(--accent);font-size:14px;font-weight:700;margin:14px 0 6px;font-family:\'Syne\',sans-serif;">$1</h4>')
+    .replace(/^## (.*?)$/gm, '<h3 style="color:var(--accent);font-size:16px;font-weight:700;margin:16px 0 8px;font-family:\'Syne\',sans-serif;">$1</h3>')
+    .replace(/^# (.*?)$/gm, '<h2 style="color:var(--accent);font-size:18px;font-weight:800;margin:18px 0 10px;font-family:\'Syne\',sans-serif;">$1</h2>')
+    // Bold
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    // Italic
+    .replace(/\*(.*?)\*/g,'<em>$1</em>')
+    // Horizontal rule
+    .replace(/^---$/gm,'<hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:14px 0;">')
+    // Bullet points
+    .replace(/^\* (.*?)$/gm,'<div style="display:flex;gap:8px;margin:4px 0;"><span style="color:var(--accent);margin-top:2px;">•</span><span>$1</span></div>')
+    .replace(/^• (.*?)$/gm,'<div style="display:flex;gap:8px;margin:4px 0;"><span style="color:var(--accent);margin-top:2px;">•</span><span>$1</span></div>')
+    // Numbered lists
+    .replace(/^(\d+)\. (.*?)$/gm,'<div style="display:flex;gap:8px;margin:6px 0;"><span style="color:var(--accent);font-weight:700;min-width:18px;">$1.</span><span>$2</span></div>')
+    // Inline code
+    .replace(/`(.*?)`/g,'<code style="background:rgba(255,255,255,0.08);padding:2px 7px;border-radius:4px;font-family:\'DM Mono\',monospace;font-size:12px;color:var(--teal,#00d0a0);">$1</code>')
+    // Line breaks
+    .replace(/\n\n/g,'<br><br>')
+    .replace(/\n/g,'<br>');
+
+  msg.innerHTML = `
+    <div class="msg-avatar">🎓</div>
+    <div class="msg-content">
+      <div class="msg-label">CATAIons</div>
+      <div class="msg-bubble" id="bubble-${Date.now()}">${formatted}<div class="audio-bar" id="audio-${Date.now()}"></div></div>
+    </div>`;
+  chat.appendChild(msg);
+  scrollChat();
+
+  // Render LaTeX if MathJax loaded
+  if (window.MathJax) {
+    MathJax.typesetPromise([msg]).catch(e => console.warn('MathJax error:', e));
+  }
+  return msg;
+}
+
+function addUserMessage(text) {
+  const chat = document.getElementById('chat-area');
+  const msg = document.createElement('div');
+  msg.className = 'msg user';
+  msg.innerHTML = `
+    <div class="msg-avatar">👤</div>
+    <div class="msg-content">
+      <div class="msg-label">You</div>
+      <div class="msg-bubble">${text}</div>
+    </div>`;
+  chat.appendChild(msg);
+  scrollChat();
+}
+
+function addThinking() {
+  const chat = document.getElementById('chat-area');
+  const t = document.createElement('div');
+  t.className = 'thinking'; t.id = 'thinking';
+  t.innerHTML = `
+    <div class="msg-avatar" style="width:32px;height:32px;border-radius:10px;background:rgba(240,165,0,0.15);border:1px solid rgba(240,165,0,0.2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🎓</div>
+    <div class="thinking-dots"><span></span><span></span><span></span></div>`;
+  chat.appendChild(t);
+  scrollChat();
+}
+
+function removeThinking() {
+  const t = document.getElementById('thinking');
+  if (t) t.remove();
+}
+
+function scrollChat() {
+  const chat = document.getElementById('chat-area');
+  setTimeout(() => chat.scrollTop = chat.scrollHeight, 50);
+}
+
+// ─── AZURE TEXT-TO-SPEECH ────────────────────────────────
+async function speakText(text, langCode, msgEl) {
+  if (!STATE.speechKey || !STATE.speechRegion) return;
+  // Strip markdown and truncate for TTS
+  const clean = text.replace(/\*\*(.*?)\*\*/g,'$1').replace(/#+\s/g,'').replace(/\n/g,' ').substring(0,800);
+  const voice = VOICE_MAP[langCode] || 'hi-IN-MadhurNeural';
+
+  try {
+    const ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${langCode}'>
+      <voice name='${voice}'>${clean}</voice></speak>`;
+
+    const res = await fetch(`https://${STATE.speechRegion}.tts.speech.microsoft.com/cognitiveservices/v1`, {
+      method: 'POST',
+      headers: {
+        'Ocp-Apim-Subscription-Key': STATE.speechKey,
+        'Content-Type': 'application/ssml+xml',
+        'X-Microsoft-OutputFormat': 'audio-16khz-128kbitrate-mono-mp3'
+      },
+      body: ssml
+    });
+
+    if (!res.ok) throw new Error(`Speech API error: ${res.status}`);
+
+    const blob = await res.blob();
+    const audioUrl = URL.createObjectURL(blob);
+    const audio = new Audio(audioUrl);
+
+    // Find audio bar in this message
+    const audioBar = msgEl.querySelector('.audio-bar') || msgEl.querySelector('[id^="audio-"]');
+    if (audioBar) {
+      const langLabel = document.getElementById('lang-select').selectedOptions[0].text;
+      audioBar.className = 'audio-bar visible';
+      audioBar.innerHTML = `
+        <button class="play-btn" onclick="toggleAudio(this, '${audioUrl}')">▶</button>
+        <div class="audio-info">
+          <div class="audio-title">Explanation Audio</div>
+          <div class="audio-sub">Azure Neural TTS · Click to play</div>
+        </div>
+        <span class="audio-lang-badge">${langLabel.split('—')[1]?.trim() || langLabel}</span>`;
+      audioBar.dataset.audioUrl = audioUrl;
+    }
+  } catch(e) {
+    console.warn('TTS failed:', e.message);
+  }
+}
+
+function toggleAudio(btn, url) {
+  if (!btn._audio) { btn._audio = new Audio(url); }
+  if (btn._audio.paused) { btn._audio.play(); btn.textContent = '⏸'; btn._audio.onended = () => btn.textContent = '▶'; }
+  else { btn._audio.pause(); btn.textContent = '▶'; }
+}
+
+// ─── MASTERY ─────────────────────────────────────────────
+function updateMasteryFromTopic(section, difficulty) {
+  const boost = difficulty === 'Basic' ? -3 : difficulty === 'Advanced' ? 5 : 2;
+  // Slight mastery indication from analyzing
+  if (section === 'Quant') { updateMastery('arith', boost); }
+  else if (section === 'VARC') { updateMastery('rc', boost); }
+  else if (section === 'DILR') { updateMastery('di', boost); }
+}
+
+function updateMastery(key, delta) {
+  if (!STATE.mastery[key]) return;
+  STATE.mastery[key] = Math.min(100, Math.max(0, STATE.mastery[key] + delta));
+  const pct = STATE.mastery[key];
+  const scoreEl = document.getElementById(`ms-${key}`);
+  const fillEl = document.getElementById(`mf-${key}`);
+  if (!scoreEl || !fillEl) return;
+  scoreEl.textContent = pct + '%';
+  fillEl.style.width = pct + '%';
+  const color = pct >= 60 ? 'var(--green)' : pct >= 40 ? 'var(--accent)' : 'var(--accent2)';
+  scoreEl.style.color = color;
+  fillEl.style.background = color;
+  // update top bar
+  const q = STATE.mastery.arith; const v = STATE.mastery.rc; const d = STATE.mastery.di;
+  document.getElementById('m-quant').textContent = `Quant ${q}%`;
+  document.getElementById('m-varc').textContent = `VARC ${v}%`;
+  document.getElementById('m-dilr').textContent = `DILR ${d}%`;
+  document.getElementById('m-quant').className = `m-chip ${q>=60?'good':q>=40?'mid':'low'}`;
+  document.getElementById('m-varc').className = `m-chip ${v>=60?'good':v>=40?'mid':'low'}`;
+  document.getElementById('m-dilr').className = `m-chip ${d>=60?'good':d>=40?'mid':'low'}`;
+}
+
+// ─── TOAST ───────────────────────────────────────────────
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+// Enable send btn if user types (even without notes)
+document.getElementById('chat-input').addEventListener('input', () => {
+  document.getElementById('send-btn').disabled = !document.getElementById('chat-input').value.trim();
+});
+</script>
+</body>
+</html>
