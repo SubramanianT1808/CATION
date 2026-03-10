@@ -17,9 +17,9 @@ Setup and Implementation
 Detailed instructions for setting up and running the project are provided in the Cations-Readme.docx document included in this repository.
 
 Please refer to that document for:
-Environment setup
-API configuration
-Running the application locally
+Environment setup,
+API configuration,
+Running the application locally &
 System implementation details
 
 Prototype Note
